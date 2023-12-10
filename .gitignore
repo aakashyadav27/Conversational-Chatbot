@@ -1,0 +1,6 @@
+#Virtual Environment
+chatbotvenv/
+#Environmental variables
+/.env
+/test.py
+/.idea
