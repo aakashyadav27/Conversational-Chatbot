@@ -94,5 +94,6 @@ streamlit run Streamlit.py
 python main.py 
 ```
 <h2> Preview </h2>
-![alt text](https://github.com/aakashyadav27/Conversational-Chatbot/blob/master/img.png?raw=true)
+![Chatbot](https://github.com/aakashyadav27/Conversational-Chatbot/assets/76722160/a1c62924-e070-4fa0-b4d1-86c4fd1cc678)
+
 
