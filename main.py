@@ -21,6 +21,16 @@ print("Started Importing the NER Model..")
 tagger = SequenceTagger.load("flair/ner-english-ontonotes-large")
 print("Completed Importing the NER Model..")
 
+def remove_duplicate_entity_group(data):
+    seen_entity_groups = set()
+    result = []
+
+    for item in reversed(data):
+        if item["entity_group"] not in seen_entity_groups:
+            seen_entity_groups.add(item["entity_group"])
+            result.append(item)
+
+    return list(reversed(result))
 def validating_age(age_list):
     try:
         if len(age_list)!=0:
@@ -45,7 +55,6 @@ def entitiy_extractor(text,tagger):
         sentence = Sentence(text.lower())
         # predict NER tags
         tagger.predict(sentence)
-        print(sentence.get_spans('ner'))
         # predict NER tags
         if len(sentence.get_spans('ner')) != 0:
             for entity in sentence.get_spans('ner'):
@@ -55,9 +64,6 @@ def entitiy_extractor(text,tagger):
                     elif entity.tag == 'GPE':
                         ner_dict.append({'entity_group': entity.tag, 'word': entity.text})
                         gpe_ner = True
-                    else:
-                        person_ner=False
-                        gpe_ner = False
         if gpe_ner==False and person_ner==False:
             no_person_name = {'entity_group': "PERSON", 'word': ""}
             no_location = {'entity_group': "GPE", 'word': ""}
@@ -66,7 +72,7 @@ def entitiy_extractor(text,tagger):
         elif person_ner==False:
             no_person_name = {'entity_group': "PERSON", 'word': ""}
             ner_dict.append(no_person_name)
-        else:
+        elif gpe_ner == False:
             no_location = {'entity_group': "GPE", 'word': ""}
             ner_dict.append(no_location)
         number_pattern="\+?\d[\d -]{8,12}\d"
@@ -87,41 +93,11 @@ def entitiy_extractor(text,tagger):
         ages_found = re.findall(age_pattern, text)
         ages_found=validating_age(ages_found)
         ner_dict.append({"entity_group": "Age","word": ages_found})
-        message_text = [{'role': 'system',
-                         'content': "'{}' check the given conversation and find the correct spokeperson name entitie and give only python dict back with key 'name'".format(text.lower())}]
-        completion = openai.ChatCompletion.create(
-                engine="Test-Chatbot",
-                messages=message_text,
-                temperature=0.7,
-                max_tokens=800,
-                top_p=0.95,
-                frequency_penalty=0,
-                presence_penalty=0,
-                stop=None
-            )
-        print(f"Assistant->{completion['choices'][0]['message']['content']}")
-        print(ner_dict)
-        try:
-            chat_champletion_result=ast.literal_eval(completion['choices'][0]['message']['content'])
-        except:
-            chat_champletion_result={}
-
-        # iterate over the list
-        if len(chat_champletion_result)>0:
-            for i in ner_dict:
-                for ele in i:
-                    if i[ele] == 'PERSON':
-                        i['word'] = chat_champletion_result['name']
-            Final_ner_result = []
-            for dictionary in ner_dict:
-                if dictionary not in Final_ner_result:
-                    Final_ner_result.append(dictionary)
-            return Final_ner_result
-        else:
-            return ner_dict
+        Final_ner_result = remove_duplicate_entity_group(ner_dict)
+        return Final_ner_result
     except Exception as e:
         print(e)
-        return
+        return {}
 
 
 app = Flask(__name__)
@@ -129,7 +105,7 @@ app = Flask(__name__)
 
 @app.route("/")
 def hello_world():
-    return "<p>Hello, World!</p>"
+    return "<p>Welcome to One Life GYM!</p>"
 
 @app.route("/ner", methods=['POST'])
 def entities():
@@ -146,5 +122,3 @@ def entities():
 
 if __name__ == '__main__':
     app.run(port=4200)
-
-
